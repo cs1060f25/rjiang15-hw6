@@ -2,363 +2,423 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Tripline — MVP</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>Tripline — Map Prototype</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
 
   <style>
-    :root { --bg:#0b0c10; --card:#151720; --text:#e8e8e8; --muted:#9aa3b2; --brand:#6ee7b7; --danger:#ff6b6b; --warn:#f7b733; --border:#202335; }
-    *{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
-    .wrap{max-width:900px;margin:0 auto;padding:16px} .btn{display:inline-block;padding:10px 14px;border-radius:10px;background:#222637;color:#fff;border:1px solid #2a2f45;cursor:pointer}
-    .btn.brand{background:linear-gradient(135deg,#22c55e,#06b6d4);border:0}.btn.ghost{background:transparent;border:1px solid #2a2f45}
-    .muted{color:var(--muted);font-size:14px}.flash{padding:12px 14px;border-radius:10px;margin-bottom:10px}.flash.success{background:#1f3d2a;color:#a7f3d0}
-    .flash.error{background:#3d1f1f;color:#fecaca}.pill{padding:6px 10px;border-radius:999px;background:#0f111a;border:1px solid #2a2f45;font-size:12px;color:#cbd5e1}
-    header{display:flex;align-items:center;gap:16px;justify-content:space-between;margin-bottom:12px} nav a{margin-right:16px;color:var(--brand);text-decoration:none}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:16px}.content{padding:16px}
-    .feed-cover{width:100%;height:220px;object-fit:cover}.carousel{position:relative;overflow:hidden;background:#0f111a;border-top:1px solid var(--border)}
-    .carousel-track{display:flex;transition:transform .3s ease}.slide{min-width:100%}.slide-header{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--border)}
-    .map{width:100%;height:280px;background:#0f111a}.map.large{height:480px}.nav-btn{position:absolute;top:50%;transform:translateY(-50%);background:rgba(17,17,17,.6);border:1px solid var(--border);color:#fff;padding:8px 10px;border-radius:10px;cursor:pointer}
-    .nav-btn.left{left:8px}.nav-btn.right{right:8px}.dots{display:flex;gap:6px;align-items:center;justify-content:center;padding:10px 0}.dot{width:7px;height:7px;border-radius:50%;background:#2a2f45}.dot.active{background:#6ee7b7}
-    .journey-meta{display:flex;align-items:center;justify-content:space-between;gap:10px}.waypoint{display:grid;grid-template-columns:180px 1fr;gap:14px;padding:12px;border-top:1px solid var(--border)}
-    .waypoint img{width:100%;height:120px;object-fit:cover;border-radius:10px} footer{opacity:.7;font-size:13px;text-align:center;margin-top:16px}
-    .toolbar{display:flex;gap:10px;align-items:center}
-    .heart{cursor:pointer;border:1px solid var(--border);background:#0f111a;border-radius:10px;padding:8px 10px;display:inline-flex;align-items:center;gap:8px}
-    .heart.liked{border-color:#2e7d32;background:#112315}
-    .heart [data-like-count] { color: #fff !important; }
+    :root{
+      --bg:#0b0c10; --panel:#0f1420; --text:#e8e8e8; --muted:#9aa3b2; --acc:#6ee7b7; --border:#202335; --btn:#1b2133; --btnB:#2a2f45;
+      --ok:#2e7d32; --warn:#f7b733; --danger:#ff6b6b;
+    }
+    *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+
+    /* Shell */
+    #app{height:100vh; display:grid; grid-template-rows:56px 1fr}
+    header{
+      display:flex; align-items:center; justify-content:space-between; padding:8px 12px;
+      background:#0b0f16; border-bottom:1px solid var(--border)
+    }
+    .brand{font-weight:600}
+    .pill{border:1px solid var(--border); background:#0b0f16; padding:6px 10px; border-radius:999px; color:#cbd5e1; font-size:12px}
+    .muted{color:var(--muted)}
+    .btn{background:var(--btn); border:1px solid var(--btnB); color:#fff; border-radius:12px; padding:8px 10px; font-size:14px; cursor:pointer}
+    .btn.brand{background:linear-gradient(135deg,#22c55e,#06b6d4); border:0}
+    .btn.ghost{background:transparent}
+    .btn.small{padding:6px 8px; font-size:12px; border-radius:10px}
+
+    /* Main split: full map + sidebar */
+    .main{display:grid; grid-template-columns:1fr min(380px,32vw); min-height:0}
+    #map{height:calc(100vh - 56px); width:100%}
+    aside{border-left:1px solid var(--border); background:#0f1420; min-height:0; display:grid; grid-template-rows:auto 1fr auto}
+
+    .side-top{padding:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+    .side-top .row{display:flex; gap:8px; align-items:center}
+    .side-list{overflow:auto; padding:10px; border-top:1px solid var(--border); border-bottom:1px solid var(--border)}
+    .item{background:#0b0f16; border:1px solid var(--border); border-radius:12px; padding:10px; display:grid; gap:8px; margin-bottom:10px}
+    .meta{display:flex; justify-content:space-between; align-items:center; gap:8px}
+    .title{font-weight:600}
+    .subtitle{font-size:12px; color:var(--muted)}
+    .row{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+
+    .chip{display:inline-flex; gap:6px; align-items:center; border:1px solid var(--border); background:#0b0f16; padding:4px 8px; border-radius:999px; font-size:12px}
+    .heart{display:inline-flex; gap:6px; align-items:center; border:1px solid var(--border); background:#0b0f16; padding:6px 8px; border-radius:10px; cursor:pointer}
+    .heart.liked{background:#112315; border-color:#295a2f}
+    .dot{width:10px; height:10px; border-radius:50%; display:inline-block}
+
+    .gallery{display:grid; grid-template-columns:repeat(4,1fr); gap:6px}
+    .thumb{width:100%; height:56px; object-fit:cover; border-radius:8px; border:1px solid #25304a}
+
+    .side-bottom{padding:10px; display:flex; gap:8px; justify-content:space-between; align-items:center}
+    .hint{color:var(--muted); font-size:12px}
+
+    /* Login overlay */
+    #login{position:fixed; inset:0; display:grid; place-items:center; background:rgba(0,0,0,.5)}
+    .panel{width:min(560px,94vw); background:var(--panel); border:1px solid var(--border); border-radius:16px; padding:16px}
+    .field{display:grid; gap:8px; margin:10px 0}
+    .input{background:#0a0e17; border:1px solid #25304a; border-radius:12px; padding:12px; color:#e8e8e8; font-size:16px}
+    .flash{margin-top:8px; color:#ffb4b4; min-height:20px}
+    button[data-like-popup] { color: #fff !important; }
+    .heart .likeCount,
+    .heart [data-like-count],
+    #likeCount,
+    #likeCountDetail {
+    color: #fff !important;
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
+  <div id="app">
     <header>
-      <div class="toolbar">
-        <strong>Tripline</strong>
-        <nav id="nav" style="margin-left:12px; display:none;">
-          <a href="/feed" data-link>Feed</a>
-          <a href="/account" data-link>Account</a>
-        </nav>
-      </div>
-      <div class="toolbar">
+      <div class="row">
+        <span class="brand">Tripline</span>
         <span id="globalLikes" class="pill" style="display:none"></span>
-        <div id="authArea"></div>
+      </div>
+      <div class="row">
+        <span class="pill">signed in: <span id="who"></span></span>
+        <button id="logoutBtn" class="btn">Log out</button>
       </div>
     </header>
 
-    <div id="flash"></div>
+    <section class="main">
+      <div id="map" aria-label="All journeys map"></div>
 
-    <!-- PAGES -->
-    <div id="page-login" style="display:none;">
-      <div class="card" style="max-width:420px;margin:48px auto;">
-        <div class="content">
-          <h1 style="margin:0 0 8px 0;">Welcome back</h1>
-          <p class="muted">Demo accounts: <code>alice / pass</code>, <code>bob / pass</code>, <code>charlie / pass</code></p>
-          <form id="loginForm" style="display:grid; gap:10px; margin-top:16px;">
-            <input name="username" placeholder="Username (e.g., alice)" required style="padding:12px;border-radius:10px;border:1px solid #2a2f45;background:#0f111a;color:#fff;">
-            <input name="password" type="password" placeholder="Password" required style="padding:12px;border-radius:10px;border:1px solid #2a2f45;background:#0f111a;color:#fff;">
-            <button class="btn brand" type="submit">Sign in</button>
-          </form>
+      <aside>
+        <div class="side-top">
+          <div class="row">
+            <span class="muted">Visibility:</span>
+            <button id="btnShowAll" class="btn small">Show all</button>
+            <button id="btnHideAll" class="btn small">Hide all</button>
+          </div>
+          <div class="row">
+            <span class="muted">Focus:</span>
+            <button id="btnFitAll" class="btn small">Fit all</button>
+          </div>
         </div>
+
+        <div id="list" class="side-list">
+          <!-- journey items injected here -->
+        </div>
+
+        <div class="side-bottom">
+          <span class="hint">Tip: click a marker or a polyline to preview; use buttons to like/focus.</span>
+          <span class="pill" id="status"></span>
+        </div>
+      </aside>
+    </section>
+  </div>
+
+  <!-- Login modal -->
+  <div id="login" style="display:none">
+    <div class="panel">
+      <div class="row" style="justify-content:space-between; align-items:center">
+        <div class="brand">Sign in</div>
+        <div class="muted" style="font-size:12px">demo: alice/bob/charlie • pass</div>
       </div>
+      <div class="field">
+        <label class="muted">Username</label>
+        <input id="u" class="input" placeholder="alice" autofocus>
+      </div>
+      <div class="field">
+        <label class="muted">Password</label>
+        <input id="p" class="input" type="password" placeholder="pass">
+      </div>
+      <div class="row" style="justify-content:flex-end; margin-top:8px">
+        <button id="loginBtn" class="btn brand">Sign in</button>
+      </div>
+      <div id="loginFlash" class="flash"></div>
     </div>
-
-    <div id="page-feed" style="display:none;"></div>
-    <div id="page-journey" style="display:none;"></div>
-    <div id="page-account" style="display:none;"></div>
-
-    <footer>Prototype • Maps powered by OpenStreetMap via Leaflet</footer>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script>
-    // ---------- tiny client router ----------
-    function $(sel, root=document){ return root.querySelector(sel); }
-    function show(id){ ["page-login","page-feed","page-journey","page-account"].forEach(p=>$("#"+p).style.display = p===id ? "" : "none"); }
-    function flash(type,msg){ $("#flash").innerHTML = msg ? `<div class="flash ${type}">${msg}</div>` : ""; }
-    function navigate(path){ history.pushState({}, "", path); render(); }
-    window.addEventListener("popstate", render);
-    document.addEventListener("click", (e) => {
-      const a = e.target.closest("[data-link]");
-      if (a){ e.preventDefault(); navigate(a.getAttribute("href")); }
-    });
-
     // ---------- helpers ----------
-    async function jfetch(url, opts={}){
-      const res = await fetch(url, {credentials:"include", headers:{ "Content-Type":"application/json" }, ...opts});
-      if(!res.ok){ throw new Error(await res.text()); }
+    const $ = (s,r=document)=>r.querySelector(s);
+    const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+    async function jfetch(url, opts={}) {
+      const res = await fetch(url, { credentials:"include", headers:{ "Content-Type":"application/json" }, ...opts });
+      if(!res.ok) throw new Error(await res.text());
       return res.json();
     }
-    function setAuthUI(user){
-      const nav = $("#nav"); const auth = $("#authArea");
-      if(user){
-        nav.style.display = ""; auth.innerHTML = `<span class="muted" style="margin-right:8px;">Signed in as ${user.name}</span>
-          <button class="btn ghost" id="logoutBtn">Log out</button>`;
-        $("#logoutBtn").onclick = async ()=>{ await jfetch("/api/logout",{method:"POST"}); navigate("/login"); };
-      } else {
-        nav.style.display = "none"; auth.innerHTML = "";
-      }
-    }
-    function setGlobalLikesBadge(n){
+    function setGlobalLikes(n){
       const el = $("#globalLikes");
-      if(!el) return;
-      if(typeof n === "number"){ el.style.display="inline-block"; el.textContent = `Total likes: ${n}`; }
-      else { el.style.display="none"; }
+      if(typeof n === "number"){ el.style.display="inline-block"; el.textContent = `total likes: ${n}`; }
+      else el.style.display="none";
+    }
+    function say(text){ const s=$("#status"); s.textContent=text||""; setTimeout(()=>{ if(s.textContent===text) s.textContent=""; }, 1500); }
+
+    // ---------- app state ----------
+    let me=null, feed=[], map=null;
+    const palette = ["#6ee7b7","#93c5fd","#fca5a5","#f9a8d4","#fde68a","#a5b4fc","#7dd3fc","#86efac","#fca5ff","#fcd34d"];
+
+    // each journey => { layer: L.LayerGroup, markers:[L.Marker], line:L.Polyline, visible:true }
+    const layersById = new Map();
+
+    // ---------- marker/icon helpers ----------
+    function markerIcon(color, label){
+      const html = `
+        <div style="
+          background:${color}; color:#000; font-weight:700; border-radius:12px; padding:4px 8px;
+          box-shadow:0 1px 0 rgba(0,0,0,.4); border:2px solid rgba(0,0,0,.25);">
+          ${label||""}
+        </div>`;
+      return L.divIcon({ html, className:"", iconSize:[24,24], iconAnchor:[12,12] });
     }
 
-    // ---------- renderers ----------
-    function likeButtonHTML(j){
-      const liked = !!j.liked_by_me;
-      const count = j.like_count || 0;
-      const label = liked ? "Unlike" : "Like";
-      return `
-        <button class="heart ${liked?"liked":""}" data-like data-post="${j.id}" aria-pressed="${liked}">
-          <span>${liked ? "❤️" : "🤍"}</span>
-          <span data-like-count>${count}</span>
-          <span class="muted" style="font-size:12px">${label}</span>
-        </button>`;
-    }
-
-    function renderFeed(items, globalLikeCount){
-      setGlobalLikesBadge(globalLikeCount);
-      const root = $("#page-feed"); root.innerHTML = `<h2 style="margin:8px 0 12px 0;">Today’s Feed</h2>`;
-      items.forEach(j=>{
-        const id = `feed_${j.id}`;
-        root.insertAdjacentHTML("beforeend", `
-          <article class="card" data-journey-id="${j.id}">
-            <img class="feed-cover" src="${j.cover_img}" alt="${j.title}">
-            <div class="content">
-              <div class="journey-meta">
+    function buildJourneyLayer(j, color){
+      const g = L.layerGroup();
+      const markers=[];
+      const latlngs=[];
+      (j.days||[]).forEach((d,di)=>{
+        (d.waypoints||[]).forEach((w,wi)=>{
+          const ll = [w.lat, w.lng];
+          latlngs.push(ll);
+          const m = L.marker(ll, { icon: markerIcon(color, String(wi+1)) });
+          const html = `
+            <div style="min-width:220px;font-family:ui-monospace, Menlo;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                <div style="width:34px;height:34px;border-radius:8px;overflow:hidden;border:1px solid #25304a">
+                  <img src="${j.cover_img}" style="width:34px;height:34px;object-fit:cover">
+                </div>
                 <div>
-                  <strong style="display:block;">${j.title}</strong>
-                  <span class="muted">by ${j.author_name} • ${j.date_range}</span>
-                </div>
-                <span class="pill">${j.total_waypoints} pts • ${j.days.length} ${j.days.length===1?"day":"days"}</span>
-              </div>
-              <p style="margin:10px 0 14px 0;">${j.summary}</p>
-              <div class="carousel" data-carousel>
-                <div class="carousel-track">
-                  ${j.days.map((d,idx)=>`
-                    <section class="slide">
-                      <div class="slide-header">
-                        <div><strong>${d.title}</strong> <span class="muted">• ${d.date}</span></div>
-                        <span class="pill">Stops ${d.waypoints.length}</span>
-                      </div>
-                      <div id="${id}_${idx}" class="map" data-waypoints='${JSON.stringify(d.waypoints)}'></div>
-                    </section>`).join("")}
-                </div>
-                <button class="nav-btn left" data-prev aria-label="Previous">‹</button>
-                <button class="nav-btn right" data-next aria-label="Next">›</button>
-                <div class="dots">${j.days.map((_,i)=>`<span class="dot ${i===0?"active":""}"></span>`).join("")}</div>
-              </div>
-              <div class="content" style="padding-left:0;padding-right:0;">
-                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; align-items:center;">
-                  ${likeButtonHTML(j)}
-                  <a class="btn brand" href="/journey/${j.id}" data-link>View Journey</a>
+                  <div style="font-weight:700">${j.title}</div>
+                  <div style="color:#9aa3b2;font-size:12px">by ${j.author_name} • ${j.date_range}</div>
                 </div>
               </div>
-            </div>
-          </article>
-        `);
-      });
-      setupAllCarousels();
-      wireLikeButtons();
-    }
-
-    function renderJourney(j){
-      const root = $("#page-journey");
-      root.innerHTML = `
-        <article class="card">
-          <img class="feed-cover" style="height:260px" src="${j.cover_img}" alt="${j.title}">
-          <div class="content">
-            <div class="journey-meta">
-              <div>
-                <h2 style="margin:0">${j.title}</h2>
-                <span class="muted">by ${j.author_name} • ${j.date_range}</span>
+              <div style="margin:6px 0 8px 0">${w.name ? `<strong>${w.name}</strong>` : ""} <span style="color:#9aa3b2">${w.note_time||""}</span></div>
+              ${w.photo ? `<img src="${w.photo}" style="width:100%;height:120px;object-fit:cover;border-radius:8px;border:1px solid #25304a">` : ""}
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+                <div style="color:#9aa3b2;font-size:12px">${j.total_waypoints} pts • ${j.days.length} ${j.days.length===1?"day":"days"}</div>
+                <button data-like-popup="${j.id}" style="cursor:pointer;background:#0b0f16;border:1px solid #2a2f45;color:#fff;border-radius:10px;padding:6px 8px">
+                  ${j.liked_by_me ? "❤️" : "🤍"} ${j.like_count||0}
+                </button>
               </div>
-              <span class="pill">${j.total_waypoints} pts • ${j.days.length} ${j.days.length===1?"day":"days"}</span>
-            </div>
-            <p style="margin:12px 0 16px 0;">${j.summary}</p>
-
-            <div class="carousel" data-carousel>
-              <div class="carousel-track">
-                ${j.days.map((d,idx)=>`
-                <section class="slide">
-                  <div class="slide-header">
-                    <div><strong>${d.title}</strong> <span class="muted">• ${d.date}</span></div>
-                    <span class="pill">Stops ${d.waypoints.length}</span>
-                  </div>
-                  <div class="map large" id="journey_${j.id}_${idx}" data-waypoints='${JSON.stringify(d.waypoints)}'></div>
-                  ${d.waypoints.map(w=>`
-                    <div class="waypoint">
-                      <img src="${w.photo}" alt="${w.name}">
-                      <div>
-                        <strong>${w.name}</strong> <span class="muted">• ${w.note_time||""}</span>
-                        <p style="margin:6px 0 0 0;">${w.comment||""}</p>
-                      </div>
-                    </div>`).join("")}
-                </section>`).join("")}
-              </div>
-              <button class="nav-btn left" data-prev aria-label="Previous">‹</button>
-              <button class="nav-btn right" data-next aria-label="Next">›</button>
-              <div class="dots">${j.days.map((_,i)=>`<span class="dot ${i===0?"active":""}"></span>`).join("")}</div>
-            </div>
-
-            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; align-items:center;">
-              ${likeButtonHTML(j)}
-              <button class="btn ghost" onclick="alert('Share not in MVP')">Share</button>
-            </div>
-          </div>
-        </article>
-        <p style="margin-top:14px;"><a href="/feed" data-link>← Back to Feed</a></p>`;
-      setupAllCarousels();
-      wireLikeButtons();
-    }
-
-    function renderAccount(data){
-      setGlobalLikesBadge(data.global_like_count);
-      const root = $("#page-account");
-      const sections = Object.entries(data.folders).map(([folder, journeys])=>`
-        <section class="card" style="padding:12px;">
-          <h3>${folder}</h3>
-          <div class="content" style="padding:0">
-            ${journeys.map(j=>`
-              <article class="card" style="overflow:hidden;">
-                <img class="feed-cover" style="height:120px" src="${j.cover_img}" alt="${j.title}">
-                <div class="content">
-                  <strong style="display:block; margin-bottom:6px;">${j.title}</strong>
-                  <span class="muted">${j.date_range} • ${j.total_waypoints} pts • ${j.days.length} ${j.days.length===1?"day":"days"}</span>
-                  <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; align-items:center;">
-                    ${likeButtonHTML(j)}
-                    <a class="btn brand" href="/journey/${j.id}" data-link>Open</a>
-                  </div>
-                </div>
-              </article>`).join("")}
-          </div>
-        </section>`).join("");
-      root.innerHTML = `<h2>Your Account</h2><p class="muted">Journeys organized by folders.</p>${sections}`;
-      wireLikeButtons();
-    }
-
-    // ---------- carousel + maps ----------
-    function setupCarousel(root){
-      const track = root.querySelector('.carousel-track');
-      const slides = [...root.querySelectorAll('.slide')];
-      const dots = [...root.querySelectorAll('.dot')];
-      const prevBtn = root.querySelector('[data-prev]'); const nextBtn = root.querySelector('[data-next]');
-      let index = 0, startX = 0, deltaX = 0;
-      function initMapFor(i){
-        const mapDiv = slides[i].querySelector('.map');
-        if(mapDiv && !mapDiv.dataset.initialized){
-          const pts = JSON.parse(mapDiv.dataset.waypoints||"[]");
-          const center = pts.length?[pts[0].lat,pts[0].lng]:[0,0];
-          const map = L.map(mapDiv,{scrollWheelZoom:false}).setView(center, pts.length?14:1);
-          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);
-          const latlngs=[]; pts.forEach(w=>{ L.marker([w.lat,w.lng]).addTo(map).bindPopup(`<strong>${w.name}</strong><br/><em>${w.note_time||''}</em><br/><img src="${w.photo}" style="width:160px;height:100px;object-fit:cover;margin-top:6px;border-radius:6px;" /><br/><span style="font-size:12px;color:#94a3b8">${w.comment||''}</span>`); latlngs.push([w.lat,w.lng]); });
-          if(latlngs.length>1){ L.polyline(latlngs,{weight:3}).addTo(map); map.fitBounds(latlngs,{padding:[20,20]}); }
-          mapDiv.dataset.initialized="1"; setTimeout(()=>map.invalidateSize(),50);
-        }
-      }
-      function update(){ track.style.transform = `translateX(-${index*100}%)`; dots.forEach((d,i)=>d.classList.toggle('active',i===index)); initMapFor(index);}
-      prevBtn?.addEventListener('click',()=>{ index=Math.max(0,index-1); update();});
-      nextBtn?.addEventListener('click',()=>{ index=Math.min(slides.length-1,index+1); update();});
-      track.addEventListener('touchstart',e=>{startX=e.touches[0].clientX;deltaX=0},{passive:true});
-      track.addEventListener('touchmove',e=>{deltaX=e.touches[0].clientX-startX},{passive:true});
-      track.addEventListener('touchend',()=>{ if(Math.abs(deltaX)>40){ if(deltaX<0&&index<slides.length-1)index++; if(deltaX>0&&index>0)index--; } update();});
-      update();
-    }
-    function setupAllCarousels(){ document.querySelectorAll('[data-carousel]').forEach(setupCarousel); }
-
-    // ---------- Like wiring ----------
-    function wireLikeButtons(){
-      document.querySelectorAll("[data-like]").forEach(btn=>{
-        if(btn.dataset.bound) return;
-        btn.dataset.bound = "1";
-        btn.addEventListener("click", async ()=>{
-          const post = btn.getAttribute("data-post");
-          const liked = btn.classList.contains("liked");
-          // optimistic flip
-          btn.classList.toggle("liked", !liked);
-          btn.setAttribute("aria-pressed", String(!liked));
-          btn.querySelector("span").textContent = !liked ? "❤️" : "🤍";
-          const countEl = btn.querySelector("[data-like-count]");
-          const optimistic = Math.max(0, (parseInt(countEl.textContent||"0",10) || 0) + (liked?-1:1));
-          countEl.textContent = optimistic;
-
-          try{
-            const r = await jfetch("/api/like", { method:"POST", body: JSON.stringify({ post_id: post, action: liked ? "unlike" : "like" }) });
-            // reconcile with server truth
-            btn.classList.toggle("liked", !!r.liked_by_me);
-            btn.setAttribute("aria-pressed", String(!!r.liked_by_me));
-            btn.querySelector("span").textContent = r.liked_by_me ? "❤️" : "🤍";
-            countEl.textContent = r.like_count;
-            setGlobalLikesBadge(r.global_like_count);
-          }catch(err){
-            // revert on error
-            btn.classList.toggle("liked", liked);
-            btn.setAttribute("aria-pressed", String(liked));
-            btn.querySelector("span").textContent = liked ? "❤️" : "🤍";
-            countEl.textContent = Math.max(0, optimistic + (liked?1:-1));
-            flash("error","Like failed.");
-            console.error(err);
-          }
+            </div>`;
+          m.bindPopup(html);
+          m.on("popupopen", bindPopupLikeButton); // wire like in popup
+          markers.push(m); m.addTo(g);
         });
       });
+      let line=null;
+      if(latlngs.length>1){
+        line = L.polyline(latlngs, { color, weight:3, opacity:.9 });
+        line.addTo(g);
+        line.on("click", ()=> { focusJourney(j.id); });
+      }
+      return { layer:g, markers, line, visible:true, color };
     }
 
-    // ---------- main render ----------
-    async function render(){
-      flash("", ""); // clear
-      const path = location.pathname;
+    function fitAllVisible(){
+      const bounds = [];
+      layersById.forEach(obj=>{
+        if(!obj.visible) return;
+        obj.markers.forEach(m=> bounds.push(m.getLatLng()));
+      });
+      if(!bounds.length) return;
+      const b = L.latLngBounds(bounds);
+      map.fitBounds(b, { padding:[40,40] });
+    }
+
+    function focusJourney(id){
+      const obj = layersById.get(id); if(!obj) return;
+      const pts = obj.markers.map(m=>m.getLatLng());
+      if(!pts.length) return;
+      map.fitBounds(L.latLngBounds(pts), { padding:[40,40] });
+      // also blink the polyline if present
+      if(obj.line){
+        const old = obj.line.options.weight;
+        obj.line.setStyle({ weight:6 });
+        setTimeout(()=> obj.line.setStyle({ weight:old }), 600);
+      }
+      highlightListItem(id);
+    }
+
+    function setVisible(id, visible){
+      const obj = layersById.get(id); if(!obj) return;
+      obj.visible = visible;
+      if(visible){ obj.layer.addTo(map); } else { obj.layer.remove(); }
+      updateItemVisibilityChip(id, visible);
+    }
+
+    // ---------- sidebar rendering ----------
+    function itemHTML(j, color){
+      const likeIcon = j.liked_by_me ? "❤️" : "🤍";
+      const pts = `${j.total_waypoints} pts • ${j.days.length} ${j.days.length===1?"day":"days"}`;
+      return `
+        <div class="item" id="item_${j.id}">
+          <div class="meta">
+            <div>
+              <div class="title">${j.title}</div>
+              <div class="subtitle">by ${j.author_name} • ${j.date_range}</div>
+            </div>
+            <span class="chip"><span class="dot" style="background:${color}"></span>${pts}</span>
+          </div>
+
+          <div class="row">
+            <button class="btn small" data-focus="${j.id}">Focus</button>
+            <button class="btn small" data-toggle="${j.id}">Hide</button>
+            <button class="heart ${j.liked_by_me?"liked":""}" data-like="${j.id}">
+              <span class="likeIcon">${likeIcon}</span>
+              <span class="likeCount">${j.like_count||0}</span>
+            </button>
+          </div>
+
+          <div class="gallery">
+            ${((j.days?.[0]?.waypoints)||[]).slice(0,4).map(w=>`<img class="thumb" src="${w.photo}" alt="${w.name}">`).join("") || `<div class="subtitle">no photos</div>`}
+          </div>
+        </div>`;
+    }
+
+    function renderList(){
+      const html = feed.map((j,i)=> itemHTML(j, layersById.get(j.id)?.color || palette[i%palette.length])).join("");
+      $("#list").innerHTML = html;
+
+      // bind buttons
+      $$("#list [data-focus]").forEach(btn=>{
+        btn.addEventListener("click", ()=> focusJourney(btn.getAttribute("data-focus")));
+      });
+      $$("#list [data-toggle]").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          const id = btn.getAttribute("data-toggle");
+          const obj = layersById.get(id);
+          const next = !obj.visible;
+          setVisible(id, next);
+        });
+      });
+      $$("#list [data-like]").forEach(btn=>{
+        btn.addEventListener("click", ()=> likeJourney(btn.getAttribute("data-like")));
+      });
+    }
+
+    function updateItemVisibilityChip(id, visible){
+      const el = $(`#item_${id} [data-toggle="${id}"]`);
+      if(el) el.textContent = visible ? "Hide" : "Show";
+    }
+    function highlightListItem(id){
+      $$("#list .item").forEach(x=> x.style.outline = "");
+      const it = $(`#item_${id}`);
+      if(it){ it.style.outline = "1px solid #1f8b8b"; it.scrollIntoView({block:"nearest"}); setTimeout(()=> it.style.outline="", 900); }
+    }
+    function reflectLikeUI(id, liked, count){
+      // sidebar
+      const item = $(`#item_${id}`);
+      if(item){
+        item.querySelector(".likeIcon").textContent = liked ? "❤️" : "🤍";
+        item.querySelector(".likeCount").textContent = count;
+        item.querySelector("[data-like]").classList.toggle("liked", liked);
+      }
+      // any open popup button
+      const btn = document.querySelector(`button[data-like-popup="${id}"]`);
+      if(btn){ btn.innerHTML = `${liked ? "❤️" : "🤍"} ${count}`; }
+    }
+
+    // ---------- likes ----------
+    async function likeJourney(id){
+      const j = feed.find(x=>x.id===id); if(!j) return;
+      const want = !j.liked_by_me;
       try{
-        const me = await jfetch("/api/whoami").catch(()=>null);
-        setAuthUI(me);
-
-        if(path === "/" || path === "/login"){
-          show("page-login");
-        } else if(path === "/feed"){
-          if(!me) return navigate("/login");
-          const data = await jfetch("/api/feed");
-          $("#page-feed").innerHTML = ""; renderFeed(data.items, data.global_like_count); show("page-feed");
-        } else if(path.startsWith("/journey/")){
-          if(!me) return navigate("/login");
-          const jid = path.split("/").pop();
-          const j = await jfetch(`/api/journey?id=${encodeURIComponent(jid)}`);
-          $("#page-journey").innerHTML = ""; renderJourney(j); show("page-journey");
-        } else if(path === "/account"){
-          if(!me) return navigate("/login");
-          const data = await jfetch("/api/account");
-          $("#page-account").innerHTML = ""; renderAccount(data); show("page-account");
-        } else {
-          navigate("/feed");
-        }
-
-      }catch(err){
-        console.error(err);
-        let message = "Something went wrong.";
-        try{ const j = JSON.parse(err.message); if(j && j.error) message = j.error; }catch(e){ if(err && err.message) message = err.message; }
-        flash("error", message);
+        const r = await jfetch("/api/like",{ method:"POST", body: JSON.stringify({ post_id:id, action: want?"like":"unlike" }) });
+        j.liked_by_me = r.liked_by_me; j.like_count = r.like_count;
+        setGlobalLikes(r.global_like_count);
+        reflectLikeUI(id, r.liked_by_me, r.like_count);
+        say(want?"Liked":"Unliked");
+      }catch{ say("Like failed"); }
+    }
+    function bindPopupLikeButton(e){
+      const id = [...e.popup._source.getPopup().getContent().matchAll(/data-like-popup="([^"]+)"/g)].map(m=>m[1])[0];
+      const btn = document.querySelector(`button[data-like-popup="${id}"]`);
+      if(btn){
+        btn.addEventListener("click", async (ev)=>{
+          ev.stopPropagation();
+          await likeJourney(id);
+        }, { once:false });
       }
     }
 
-    // login handler
-    $("#loginForm").addEventListener("submit", async (e)=>{
-      e.preventDefault();
-      const username = e.target.username.value.trim().toLowerCase();
-      const password = e.target.password.value;
+    // ---------- login ----------
+    async function doLogin(){
+      const username = $("#u").value.trim().toLowerCase();
+      const password = $("#p").value;
+      $("#loginFlash").textContent = "";
       try{
         await jfetch("/api/login",{method:"POST",body:JSON.stringify({username,password})});
-        flash("success","Welcome!");
-        navigate("/feed");
+        $("#login").style.display="none";
+        await boot();
       }catch(err){
-        console.error('login error:', err);
-        let message = "Invalid credentials. Try 'alice' / 'pass', 'bob' / 'pass', or 'charlie' / 'pass'.";
+        let message = "Invalid credentials.";
         try{ const j = JSON.parse(err.message); if(j && j.error) message = j.error; }catch(e){ if(err && err.message) message = err.message; }
-        flash("error", message);
+        $("#loginFlash").textContent = message;
       }
-    });
+    }
+    $("#loginBtn").addEventListener("click", doLogin);
+    $("#logoutBtn").addEventListener("click", async ()=>{ try{ await jfetch("/api/logout",{method:"POST"}); location.reload(); }catch{} });
 
-    render();
+    // ---------- boot ----------
+    async function boot(){
+      const who = await jfetch("/api/whoami").catch(()=>null);
+      if(!who){
+        $("#login").style.display="grid";
+        $("#who").textContent = "";
+        setGlobalLikes(null);
+        return;
+      }
+      $("#login").style.display="none";
+      $("#who").textContent = who.name || who.username || "";
+
+      // map init
+      if(!map){
+        map = L.map("map", { scrollWheelZoom:true, zoomControl:true }).setView([20,0], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19, attribution:'© OpenStreetMap'}).addTo(map);
+      }
+
+      // load feed (visible journeys only)
+      const data = await jfetch("/api/feed");
+      feed = data.items || [];
+      setGlobalLikes(data.global_like_count);
+
+      // clear previous layers
+      layersById.forEach(obj=> obj.layer.remove());
+      layersById.clear();
+
+      // build layers + list
+      const pointsAll = [];
+      feed.forEach((j,i)=>{
+        const color = palette[i % palette.length];
+        const obj = buildJourneyLayer(j, color);
+        obj.layer.addTo(map);
+        layersById.set(j.id, obj);
+        obj.markers.forEach(m=> pointsAll.push(m.getLatLng()));
+      });
+
+      renderList();
+
+      // initial fit
+      if(pointsAll.length){
+        map.fitBounds(L.latLngBounds(pointsAll), { padding:[40,40] });
+      }
+    }
+
+    // top buttons
+    $("#btnShowAll").addEventListener("click", ()=>{
+      layersById.forEach((_,id)=> setVisible(id,true));
+      fitAllVisible();
+    });
+    $("#btnHideAll").addEventListener("click", ()=>{
+      layersById.forEach((_,id)=> setVisible(id,false));
+    });
+    $("#btnFitAll").addEventListener("click", fitAllVisible);
+
+    // start
+    (async ()=> {
+      const who = await jfetch("/api/whoami").catch(()=>null);
+      if(!who){ $("#login").style.display="grid"; } else { $("#who").textContent = who.name || who.username || ""; }
+      if(who){ boot(); }
+    })();
   </script>
 </body>
 </html>
