@@ -3,7 +3,7 @@
   "functions": {
     "api/index.js": {
       "runtime": "nodejs20.x",
-      "includeFiles": ["storage/**", "index.html"]
+      "includeFiles": "storage/**"
     }
   },
   "rewrites": [
