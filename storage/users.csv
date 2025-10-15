@@ -1,0 +1,4 @@
+id,name,password_hash,follows,created_at
+alice,Alice,pass,"[""bob"",""charlie""]",1731540000000
+bob,Bob,pass,"[""charlie""]",1731540000001
+charlie,Charlie,pass,"[]",1731540000002
