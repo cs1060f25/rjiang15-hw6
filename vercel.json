@@ -3,11 +3,10 @@
   "functions": {
     "api/index.js": {
       "runtime": "nodejs20.x",
-      "includeFiles": "storage/**"
+      "includeFiles": ["storage/**", "index.html"]
     }
   },
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/api/:path*" },
-    { "source": "/(.*)", "destination": "/api/index.js" }
+    { "source": "/(login|feed|account|journey/.*)", "destination": "/index.html" }
   ]
 }

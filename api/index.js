@@ -3,8 +3,56 @@ const fs = require("fs");
 const path = require("path");
 
 // ---- CSV helpers (your exact implementations) ----
-function parseCSV(text) { /* ... paste your code ... */ }
-function loadCSV(filePath) { return parseCSV(fs.readFileSync(filePath, "utf8")); }
+function parseCSV(text) {
+  // Returns [{col:value,...}, ...] using first row as header.
+  const rows = [];
+  let i = 0, field = "", row = [], inQuotes = false;
+  const pushField = () => { row.push(field); field = ""; };
+  const pushRow = () => { rows.push(row); row = []; };
+  while (i < text.length) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
+        inQuotes = false; i++; continue;
+      }
+      field += ch; i++; continue;
+    } else {
+      if (ch === '"') { inQuotes = true; i++; continue; }
+      if (ch === ",") { pushField(); i++; continue; }
+      if (ch === "\r") { i++; continue; }
+      if (ch === "\n") { pushField(); pushRow(); i++; continue; }
+      field += ch; i++; continue;
+    }
+  }
+  pushField();
+  if (row.length > 1 || (row.length === 1 && row[0] !== "")) pushRow();
+  if (rows.length === 0) return [];
+  const header = rows[0];
+  return rows.slice(1).map(cols => {
+    const o = {};
+    header.forEach((h, idx) => { o[h] = cols[idx] ?? ""; });
+    return o;
+  });
+}
+function csvEscape(value) {
+  const s = String(value ?? "");
+  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+function writeCSV(filePath, header, rows) {
+  const head = header.join(",") + "\n";
+  const body = rows.map(r => header.map(h => csvEscape(r[h])).join(",")).join("\n");
+  const tmp = filePath + ".tmp";
+  fs.writeFileSync(tmp, head + body + (rows.length ? "\n" : ""));
+  fs.renameSync(tmp, filePath);
+}
+
+function loadCSV(filePath) {
+  const txt = fs.readFileSync(filePath, "utf8");
+  return parseCSV(txt);
+}
+
 function safeJSON(str, fb){ try { return JSON.parse(str); } catch { return fb; } }
 
 // ---- Load data (read-only in serverless) ----
